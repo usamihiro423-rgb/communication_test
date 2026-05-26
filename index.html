@@ -1,1 +1,205 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ABC得点診断</title>
+  <style>
+    body {
+      font-family: "Meiryo", "Hiragino Kaku Gothic ProN", sans-serif;
+      line-height: 1.7;
+      margin: 0;
+      background: #f6f7fb;
+      color: #222;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    h1 {
+      font-size: 26px;
+      margin-bottom: 8px;
+    }
+    .lead {
+      background: #fff;
+      padding: 16px 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      margin-bottom: 20px;
+    }
+    .scale {
+      font-size: 14px;
+      color: #444;
+    }
+    .question {
+      background: #fff;
+      padding: 16px 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      margin-bottom: 14px;
+    }
+    .q-text {
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .choices {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    label {
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 6px 10px;
+      cursor: pointer;
+      background: #fafafa;
+    }
+    input[type="radio"] {
+      margin-right: 4px;
+    }
+    .buttons {
+      display: flex;
+      gap: 10px;
+      margin: 24px 0;
+      flex-wrap: wrap;
+    }
+    button {
+      font-size: 16px;
+      padding: 10px 18px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    .primary {
+      background: #2f5f9f;
+      color: white;
+    }
+    .secondary {
+      background: #ddd;
+      color: #222;
+    }
+    .result {
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      display: none;
+    }
+    .score {
+      font-size: 20px;
+      font-weight: bold;
+      margin: 8px 0;
+    }
+    .warning {
+      color: #b00020;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>ABC得点診断</h1>
+    <div class="lead">
+      <p>各質問について、もっとも近いものを1〜5点で選んでください。回答後、a・b・cの合計得点を表示します。</p>
+      <p class="scale">1：そういうことはない ／ 2：たまにあるが、ほとんどそういうことはない ／ 3：相手や場面でそういうこともある ／ 4：そういうことが多い ／ 5：ほぼ確実にそうである</p>
+    </div>
+
+    <form id="quizForm"></form>
+
+    <div class="buttons">
+      <button class="primary" type="button" onclick="calculateScore()">結果を見る</button>
+      <button class="secondary" type="button" onclick="resetForm()">リセット</button>
+    </div>
+
+    <div id="result" class="result"></div>
+  </div>
+
+  <script>
+    const questions = [
+      { text: "自分がやりたくないことは、はっきり『やりたくない』という", type: "c" },
+      { text: "他人から何か言われるとすぐに意見を変える", type: "b" },
+      { text: "他の人の意見や考え方を、ダメだと決めつける", type: "a" },
+      { text: "苦手な相手には、意見があっても言わない", type: "b" },
+      { text: "他人より自分の方が偉いと考える", type: "a" },
+      { text: "遠慮が多く、要求を伝えられない", type: "b" },
+      { text: "自分の考えを否定されると、ムキになって反論する", type: "a" },
+      { text: "周囲の人から嫌がらせを受けても、文句を言わない", type: "b" },
+      { text: "自分の気持ちを素直に相手に伝える", type: "c" },
+      { text: "自分を抑え、周囲の動きに合わせようとする", type: "b" },
+      { text: "授業や講演などで、わからないことがあれば、どんどん質問する", type: "c" },
+      { text: "議論では相手を圧倒しないと気がすまない", type: "a" },
+      { text: "集まりの場などでは遠慮して自分の意見を出さない", type: "b" },
+      { text: "図書館で話をしている人に静かにしてくれと言う", type: "c" },
+      { text: "他人と話すときは、ドギマギすることが多い", type: "b" },
+      { text: "上司の頼みでも、実行が難しいと思えばその場で断る", type: "c" },
+      { text: "怒ると、相手を激しくののしる", type: "a" },
+      { text: "集団の中で、目立たないようにする", type: "b" },
+      { text: "他人の意向を無視して行動する", type: "a" },
+      { text: "感情的にならず、冷静に自分の考えを相手に伝える", type: "c" },
+      { text: "困ったときには、友達に支援や助言を求める", type: "c" },
+      { text: "自分は正しく、他人は間違っていると考える", type: "a" },
+      { text: "初対面の人とは、緊張してうまく会話ができない", type: "b" },
+      { text: "他人がずるいことをした時は、はっきりと指摘する", type: "c" },
+      { text: "相手の気持ちに配慮しながらも、言うべき事は全て言う", type: "c" },
+      { text: "自分の思い通りに他人を動かそうとする", type: "a" },
+      { text: "他人の話を最後まで聞かない", type: "a" },
+      { text: "他人に嫌われることをおそれる", type: "b" },
+      { text: "会話では、常に自分が中心になっていないと気がすまない", type: "a" },
+      { text: "相手が誰でも、自分の考えを素直に話す", type: "c" }
+    ];
+
+    const form = document.getElementById("quizForm");
+
+    questions.forEach((q, index) => {
+      const div = document.createElement("div");
+      div.className = "question";
+      div.innerHTML = `
+        <div class="q-text">${index + 1}. ${q.text}</div>
+        <div class="choices">
+          ${[1,2,3,4,5].map(num => `
+            <label><input type="radio" name="q${index}" value="${num}">${num}点</label>
+          `).join("")}
+        </div>
+      `;
+      form.appendChild(div);
+    });
+
+    function calculateScore() {
+      const scores = { a: 0, b: 0, c: 0 };
+      let unanswered = [];
+
+      questions.forEach((q, index) => {
+        const checked = document.querySelector(`input[name="q${index}"]:checked`);
+        if (!checked) {
+          unanswered.push(index + 1);
+        } else {
+          scores[q.type] += Number(checked.value);
+        }
+      });
+
+      const result = document.getElementById("result");
+      result.style.display = "block";
+
+      if (unanswered.length > 0) {
+        result.innerHTML = `<p class="warning">未回答があります：${unanswered.join("、")}番</p>`;
+        return;
+      }
+
+      result.innerHTML = `
+        <h2>結果</h2>
+        <p class="score">a得点：${scores.a}点</p>
+        <p class="score">b得点：${scores.b}点</p>
+        <p class="score">c得点：${scores.c}点</p>
+        <p>※この結果は授業・ワーク用の自己理解を目的としたものです。</p>
+      `;
+    }
+
+    function resetForm() {
+      form.reset();
+      document.getElementById("result").style.display = "none";
+    }
+  </script>
+</body>
+</html>
 
